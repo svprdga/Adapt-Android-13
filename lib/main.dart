@@ -83,9 +83,17 @@ class _MainScreenState extends State<MainScreen> {
   }
 
   Future<void> _pickFile() async {
-    final result = await Permission.storage.request();
+    final Map<Permission, PermissionStatus> statusess =
+        await [Permission.mediaLibrary, Permission.notification].request();
 
-    if (result == PermissionStatus.granted) {
+    var allAccepted = true;
+    statusess.forEach((permission, status) {
+      if (status != PermissionStatus.granted) {
+        allAccepted = false;
+      }
+    });
+
+    if (allAccepted) {
       final FilePickerResult? result =
           await FilePicker.platform.pickFiles(type: FileType.image);
 
