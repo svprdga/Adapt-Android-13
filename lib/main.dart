@@ -1,6 +1,26 @@
-import 'package:flutter/material.dart';
+import 'dart:async';
+import 'dart:io';
 
-void main() {
+import 'package:file_picker/file_picker.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+import 'package:permission_handler/permission_handler.dart';
+
+FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin =
+    FlutterLocalNotificationsPlugin();
+const AndroidInitializationSettings initializationSettingsAndroid =
+    AndroidInitializationSettings('ic_notification');
+
+const InitializationSettings initializationSettings = InitializationSettings(
+  android: initializationSettingsAndroid,
+);
+
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+
+  await flutterLocalNotificationsPlugin.initialize(initializationSettings,
+      onDidReceiveNotificationResponse: (NotificationResponse response) {});
+
   runApp(const App());
 }
 
@@ -22,34 +42,38 @@ class App extends StatelessWidget {
 class MainScreen extends StatefulWidget {
   const MainScreen({super.key});
 
-
   @override
   State<MainScreen> createState() => _MainScreenState();
 }
 
 class _MainScreenState extends State<MainScreen> {
+  String? _filepath;
+
+  @override
+  void initState() {
+    super.initState();
+  }
 
   @override
   Widget build(BuildContext context) {
-
     return Scaffold(
       appBar: AppBar(
         title: const Text('Adapt Android 13'),
       ),
-      // body: Center(
-      //   child: Column(
-      //     mainAxisAlignment: MainAxisAlignment.center,
-      //     children: <Widget>[
-      //       const Text(
-      //         'You have pushed the button this many times:',
-      //       ),
-      //       Text(
-      //         '$_counter',
-      //         style: Theme.of(context).textTheme.headline4,
-      //       ),
-      //     ],
-      //   ),
-      // ),
+      body: _filepath != null
+          ? Center(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  SizedBox(
+                    width: 250.0,
+                    height: 250.0,
+                    child: Image.file(File(_filepath!)),
+                  ),
+                ],
+              ),
+            )
+          : Container(),
       floatingActionButton: FloatingActionButton(
         onPressed: _pickFile,
         tooltip: 'Pick image',
@@ -59,9 +83,34 @@ class _MainScreenState extends State<MainScreen> {
   }
 
   Future<void> _pickFile() async {
-    if (await Permission.storage.isGranted) {
+    final result = await Permission.storage.request();
+
+    if (result == PermissionStatus.granted) {
       final FilePickerResult? result =
-      await FilePicker.platform.pickFiles(type: FileType.image);
+          await FilePicker.platform.pickFiles(type: FileType.image);
+
+      final path = result?.files.single.path;
+
+      if (path != null) {
+        _postNotification();
+        setState(() {
+          _filepath = path;
+        });
+      }
     }
+  }
+
+  Future<void> _postNotification() async {
+    const AndroidNotificationDetails androidNotificationDetails =
+        AndroidNotificationDetails(
+      'default_notification_channel_id',
+      'Default',
+      importance: Importance.max,
+      priority: Priority.max,
+    );
+    const NotificationDetails notificationDetails =
+        NotificationDetails(android: androidNotificationDetails);
+    await flutterLocalNotificationsPlugin.show(
+        0, 'Image successfully loaded', '', notificationDetails);
   }
 }
