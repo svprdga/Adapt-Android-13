@@ -78,7 +78,7 @@ class _MainScreenState extends State<MainScreen> {
         onPressed: _pickFile,
         tooltip: 'Pick image',
         child: const Icon(Icons.add),
-      ), // This trailing comma makes auto-formatting nicer for build methods.
+      ),
     );
   }
 
