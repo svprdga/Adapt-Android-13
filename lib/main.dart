@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:io';
 
+import 'package:device_info_plus/device_info_plus.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
@@ -83,8 +84,16 @@ class _MainScreenState extends State<MainScreen> {
   }
 
   Future<void> _pickFile() async {
-    final Map<Permission, PermissionStatus> statusess =
-        await [Permission.mediaLibrary, Permission.notification].request();
+    final androidInfo = await DeviceInfoPlugin().androidInfo;
+    late final Map<Permission, PermissionStatus> statusess;
+
+    if (androidInfo.version.sdkInt <= 32) {
+      statusess = await [
+        Permission.storage,
+      ].request();
+    } else {
+      statusess = await [Permission.photos, Permission.notification].request();
+    }
 
     var allAccepted = true;
     statusess.forEach((permission, status) {
